@@ -1,0 +1,28 @@
+---
+  - hosts: mysql
+    become: yes
+    vars:
+      mysql_root_password: password
+    tasks:      
+      - name: instalar mysql y python-mysqldb
+        apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
+        with_items:
+        - python3-mysqldb
+        - mysql-server
+      - name: iniciar servicio de mysql
+        shell: "service mysql start"
+      - name: garantizar que mysql esta hablitado y en ejecucion
+        service: name=mysql state=started enabled=true
+      - name: actua1izar contraseña para usuario root mysql
+        mysql_user: login_user=root login_password={{ mysql_root_password }} name=root host="{{ item }}" password={{ mysql_root_password }} priv=*.*:ALL,GRANT
+        with_items:
+          - "{{ ansible_hostname }}"
+          - 127.0.0.1
+          - ::1
+          - localhost
+      - name: crear base de datos nueva
+        mysql_db: db=testdb state=present login_user=root login_password="{{ mysql_root_password }}"
+      - name: agregar datos de ejemplo a la base de datos
+        copy: src=dump.sql dest=/tmp/dump.sql
+      - name: insertar la informacion de ejemplo en la base de datos
+        mysql_db: name=testdb state=import target=/tmp/dump.sql login_user=root login_password="{{ mysql_root_password }}"

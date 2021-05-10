@@ -1,0 +1,25 @@
+---
+- name: garantizar que apache esta instalado y en ejecucion
+  apt: name=apache2 state=latest
+- name: escribir el archivo de configuracion apache
+  copy: src=000-default.conf dest=/etc/apache2/sites-available/000-default.conf
+  notify:
+    - restart apache2
+- name: apache esta en ejecucion y habilitado para el arranque
+  service: name=apache2 state=restarted enabled=yes
+- name: desactivar pmp_event en apache
+  shell: "a2dismod mpm_event"
+  notify:
+    - restart apache2
+- name: activar cgi en apache
+  shell: "a2enmod mpm_prefork cgi"
+  notify:
+    - restart apache2
+- name: install pymysql module for index to use
+  pip: name=pymysql executable=pip3
+- name: agregar un directorio de test
+  file: path=/var/www/test/ state=directory
+- name: agregar nuestro archivo principal
+  copy: src=index.py dest=/var/www/test/index.py mode=755
+  notify:
+    - restart apache2
